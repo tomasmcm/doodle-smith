@@ -5,15 +5,11 @@ import constants from './constants'
 import Menu from './components/Menu';
 import GameOver from './components/GameOver';
 import Countdown from './components/Countdown';
+import Correct from './components/Correct';
 
 import { AnimatePresence } from 'framer-motion'
 
-const formatTime = (seconds) => {
-  seconds = Math.floor(seconds);
-  const minutes = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-}
+import { formatTime } from './utils.js';
 
 // https://stackoverflow.com/a/12646864/13989043
 function shuffleArray(array) {
@@ -36,11 +32,15 @@ function App() {
   const [output, setOutput] = useState(null);
   const [isPredicting, setIsPredicting] = useState(false);
   const [sketchHasChanged, setSketchHasChanged] = useState(false);
+  const [lives, setLives] = useState(constants.LIVES);
+  const [levelTimer, setLevelTimer] = useState(constants.LEVEL_TIMER);
 
   // What the user must sketch
   const [targets, setTargets] = useState(null);
   const [targetIndex, setTargetIndex] = useState(0);
   const [predictions, setPredictions] = useState([]);
+  const [correct, setCorrect] = useState(false);
+  const [modelResponses, setModelResponses] = useState(constants.RESPONSES);
 
   // Create a reference to the worker object.
   const worker = useRef(null);
@@ -146,6 +146,7 @@ function App() {
 
   const beginCountdown = () => {
     setGameState('countdown');
+    setLives(constants.LIVES);
 
     // Choose the targets here and shuffle
     const possibleLabels = Object.values(constants.LABELS)
@@ -154,6 +155,9 @@ function App() {
 
     setTargets(possibleLabels);
     setTargetIndex(0);
+    const responses = constants.RESPONSES
+    shuffleArray(responses);
+    setModelResponses(responses);
   }
 
   const handleMainClick = () => {
@@ -195,41 +199,52 @@ function App() {
   }, [output, targetIndex, targets]);
 
   const endGame = useCallback((cancelled = false) => {
-    if (!cancelled) {
-      addPrediction(false);
-    }
+    // if (!cancelled) {
+    //   addPrediction(false);
+    // }
 
     // reset
-    setGameStartTime(null);
     setOutput(null);
     setSketchHasChanged(false);
     handleClearCanvas(true);
     setCountdown(constants.COUNTDOWN_TIMER);
     setGameState(cancelled ? 'menu' : 'end');
-  }, [addPrediction]);
+    setLives(constants.LIVES)
+  }, []);
 
   // Detect for end of game
   useEffect(() => {
-    if (gameState === 'playing' && gameCurrentTime !== null && gameStartTime !== null && (gameCurrentTime - gameStartTime) / 1000 > constants.GAME_DURATION) {
+    if (
+      gameState === 'playing' &&
+      // gameCurrentTime !== null &&
+      // gameStartTime !== null &&
+      // (gameCurrentTime - gameStartTime) / 1000 > constants.GAME_DURATION
+      lives <= 0
+    ) {
       endGame();
     }
-  }, [endGame, gameState, gameStartTime, gameCurrentTime])
+  }, [endGame, gameState, gameStartTime, gameCurrentTime, lives])
 
 
   const goNext = useCallback((isCorrect = false) => {
     if (!isCorrect) {
       // apply skip penalty (done by pretending the game started earlier)
-      setGameStartTime(prev => {
-        return prev - constants.SKIP_PENALTY
-      });
+      // setGameStartTime(prev => {
+      //   return prev - constants.SKIP_PENALTY
+      // });
+      setLives(lives => (lives - 1))
+    } else {
+      setLevelTimer(prev => (prev - constants.LEVEL_TIMER_REDUCER))
     }
-    addPrediction(isCorrect);
+    if (lives > 0) {
+      addPrediction(isCorrect);
+    }
 
     setTargetIndex(prev => prev + 1);
     setOutput(null);
     setSketchHasChanged(false);
     handleClearCanvas(true);
-  }, [addPrediction])
+  }, [addPrediction, lives])
 
   // detect for correct and go onto next
   useEffect(() => {
@@ -238,7 +253,11 @@ function App() {
 
       if (targets[targetIndex] === output[0].label) {
         // Correct! Switch to next
+        setCorrect(true);
         goNext(true);
+        setTimeout(() => {
+          setCorrect(false);
+        }, 400);
       }
     }
   }, [goNext, gameState, output, targets, targetIndex]);
@@ -273,6 +292,13 @@ function App() {
     }
   }, [gameState, isPredicting, sketchHasChanged, addPrediction, classify]);
 
+  const checkLevelTime = () => {
+    const currentTime = canvasRef?.current?.getTimeSpentDrawing() || 0;
+    if ( (levelTimer - currentTime) < 0) {
+      goNext(false);
+    }
+  }
+
   useEffect(() => {
     if (gameState === 'playing') {
       const preventDefault = (e) => e.preventDefault();
@@ -286,11 +312,17 @@ function App() {
   const isPlaying = gameState === 'playing';
   const countdownVisible = gameState === 'countdown';
   const gameOver = gameState === 'end';
+  const timeSpent = Math.max(
+    0,
+    levelTimer - (canvasRef?.current?.getTimeSpentDrawing() || 0)
+  ) / levelTimer * 100;
+
   return (
     <>
       <div className={`h-full w-full top-0 left-0 absolute ${isPlaying ? '' : 'pointer-events-none'}`}>
         <SketchCanvas onSketchChange={() => {
           setSketchHasChanged(true);
+          checkLevelTime();
         }} ref={canvasRef} />
       </div>
       <AnimatePresence
@@ -316,25 +348,44 @@ function App() {
         mode='wait'
       >
         {gameOver && (
-          <GameOver predictions={predictions} onClick={handleGameOverClick} />
+          <GameOver predictions={predictions} onClick={handleGameOverClick} gameCurrentTime={gameCurrentTime} gameStartTime={gameStartTime}/>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence
+        initial={false}
+        mode='wait'
+      >
+        {correct && (
+          <Correct />
         )}
       </AnimatePresence>
 
       {((isPlaying && gameCurrentTime !== null && targets)) && (
 
-        <div className='absolute top-5 text-center'>
-          <h2 className='text-4xl'>Draw &quot;{targets[targetIndex]}&quot;</h2>
-          <h3 className='text-2xl'>
-            {formatTime(Math.max(constants.GAME_DURATION - (gameCurrentTime - gameStartTime) / 1000, 0))}
+        <div className='absolute top-5 text-center text-slate-900'>
+          <h2 className='text-4xl font-semibold mb-3'>
+            Draw:&nbsp;
+            <span className="rounded-lg bg-lime-50 p-2 shadow-lg w-auto inline-block px-4">{targets[targetIndex]}</span>
+          </h2>
+          <div className='w-[80vw] h-2 bg-gray-300 rounded-full overflow-hidden mb-2'>
+            <div className='h-full bg-lime-500' style={{ width: `${timeSpent}%` }}></div>
+          </div>
+          <h3 className='text-xl font-medium mb-1'>
+            Time: {formatTime((gameCurrentTime - gameStartTime) / 1000)}
+          </h3>
+          <h3 className='text-xl font-medium'>
+            Lives: {'❤️ '.repeat(lives)}
           </h3>
         </div>
       )}
 
       {menuVisible && (
-        <div className='absolute bottom-4'>
+        <div className='absolute bottom-4 text-center'>
+          This game is running 100% locally on this device. <br/>
           Made with{" "}
           <a
-            className='underline'
+            className='underline text-lime-600'
             href='https://github.com/xenova/transformers.js'
           >
             🤗 Transformers.js
@@ -346,13 +397,13 @@ function App() {
         <div className='absolute bottom-5 text-center'>
 
           <h1 className="text-2xl font-bold mb-3">
-            {output && `Prediction: ${output[0].label} (${(100 * output[0].score).toFixed(1)}%)`}
+            {output && `${modelResponses[targetIndex % modelResponses.length]} ${output[0].label} (${(100 * output[0].score).toFixed(1)}%)`}
           </h1>
 
           <div className='flex gap-2 justify-center'>
-            <button onClick={() => { handleClearCanvas() }}>Clear</button>
-            <button onClick={() => { goNext(false) }}>Skip</button>
-            <button onClick={() => { handleEndGame(true) }}>Exit</button>
+            <button className="text-lime-900 font-semibold hover:border-lime-700 focus:outline-lime-700" onClick={() => { handleClearCanvas() }}>Clear</button>
+            <button className="text-lime-900 font-semibold hover:border-lime-700 focus:outline-lime-700" onClick={() => { goNext(false) }}>Skip</button>
+            <button className="text-lime-900 font-semibold hover:border-lime-700 focus:outline-lime-700" onClick={() => { handleEndGame(true) }}>Exit</button>
           </div>
         </div>
       )}
