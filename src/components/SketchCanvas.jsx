@@ -71,8 +71,12 @@ const SketchCanvas = forwardRef(({
     context.shadowColor = 'rgba(0, 0, 0, 0.9)'; // Set shadow color
     context.shadowBlur = 1; // Set shadow blur
 
-    const paddingLeft = (canvas.width - window.innerWidth) / 2;
-    const paddingTop = (canvas.height - window.innerHeight) / 2;
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+    const marginX = canvasWidth * 0.1;
+    const marginY = canvasHeight * 0.1;
+    const paddingLeft = (canvasWidth - window.innerWidth) / 2;
+    const paddingTop = (canvasHeight - window.innerHeight) / 2;
 
     const brushRadius = constants.BRUSH_SIZE / 2;
 
@@ -89,6 +93,16 @@ const SketchCanvas = forwardRef(({
       const [offsetX, offsetY] = getPosition(event);
       const canvasX = offsetX + paddingLeft;
       const canvasY = offsetY + paddingTop;
+
+      // Ignore glitches
+      if (
+        canvasX < marginX ||
+        canvasY < marginY ||
+        canvasX > canvasWidth - marginX ||
+        canvasY > canvasHeight - marginY
+      ) {
+        return;
+      }
       context.moveTo(canvasX, canvasY);
       context.beginPath();
       context.lineTo(canvasX, canvasY);
@@ -119,6 +133,16 @@ const SketchCanvas = forwardRef(({
       const [offsetX, offsetY] = getPosition(event);
       const canvasX = offsetX + paddingLeft;
       const canvasY = offsetY + paddingTop;
+
+      // Ignore glitches
+      if (
+        canvasX < marginX ||
+        canvasY < marginY ||
+        canvasX > canvasWidth - marginX ||
+        canvasY > canvasHeight - marginY
+      ) {
+        return;
+      }
 
       setSketchBoundingBox(x => x === null ? x : [
         Math.min(x[0], canvasX - brushRadius),
