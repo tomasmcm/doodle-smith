@@ -44,7 +44,7 @@ const Countdown = ({ countdown }) => {
             <h1
             style={{transform: 'translateY(-0.8rem)'}}
             
-            className='text-9xl'>{countdown > 0 ? countdown : 'Draw!'}</h1>
+            className='text-9xl font-semibold'>{countdown > 0 ? countdown : 'Draw!'}</h1>
 
         </motion.div>
     );

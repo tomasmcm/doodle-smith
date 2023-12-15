@@ -33,14 +33,20 @@ const Menu = ({ onClick, gameState }) => {
             // animate={{ opacity:  }}
             className='absolute w-full h-full flex justify-center items-center flex-col px-8 text-center'
         >
+            <img
+                src="/bot.jpg"
+                alt="Doodle Bot"
+                className="mb-4 w-64 sm:w-80 rounded-xl"
+            />
             <h1
-                className='sm:text-8xl text-7xl mb-4 font-extrabold tracking-tight text-slate-900 text-center'>
-                Doodle Dash
+                className='xl:text-8xl text-4xl mb-4 font-extrabold tracking-tight text-slate-900 text-center'>
+                Doodle Smith
             </h1>
 
             <h2
-                className='sm:text-2xl text-xl mb-3 font-semibold text-slate-900'>
-                How fast can a neural network predict your doodles?
+                className='xl:text-2xl text-lg mb-3 font-semibold text-slate-900'>
+                Can a neural network understand your doodles?<br/>
+                If you get 10 right you win!
             </h2>
 
             <button
@@ -49,7 +55,7 @@ const Menu = ({ onClick, gameState }) => {
                 type="button"
                 className={`
           inline-flex items-center px-4 py-2 font-semibold
-          leading-6 shadow rounded-md text-white bg-indigo-500 hover:bg-indigo-400
+          leading-6 shadow rounded-md text-white bg-lime-600 hover:bg-lime-500 hover:border-lime-700 focus:outline-lime-700
           transition ease-in-out duration-150 ${gameState === 'loading' ? "cursor-not-allowed" : ''}
           `}>
                 {gameState === 'loading' && (
