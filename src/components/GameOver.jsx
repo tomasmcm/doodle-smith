@@ -1,5 +1,6 @@
 
 import { motion } from 'framer-motion';
+import { formatTime } from '../utils.js';
 
 const dropIn = {
     hidden: {
@@ -44,9 +45,10 @@ function createImageFromImageData(imageData) {
 }
 
 
-const GameOver = ({ predictions, onClick }) => {
+const GameOver = ({ predictions, onClick, gameCurrentTime, gameStartTime }) => {
 
     console.log('predictions', predictions)
+    const correct = predictions.filter(p => p.correct).length
 
     return (
         <motion.div
@@ -55,20 +57,37 @@ const GameOver = ({ predictions, onClick }) => {
             variants={dropIn}
             exit="hidden"
             // animate={{ opacity:  }}
-            className='absolute w-full h-full flex justify-center items-center flex-col px-8 text-center'
+            className='absolute w-full h-full flex items-center flex-col p-8 text-center overflow-y-scroll'
         >
             <h1
                 className='sm:text-7xl text-6xl mb-3 font-bold tracking-tight text-slate-900 text-center'>
-                Game Over!
+                {correct >= 10 ? "You Won!" : "Game Over!"}
             </h1>
 
+            {correct >= 10 && (
+                <>
+                    <h3 className='mb-4 sm:text-2xl text-xl font-semibold text-slate-900'>
+                        As an award, here is a picture of you in broccoli-land!
+                    </h3>
+                    <img
+                        src="/mamedeGPT.png"
+                        alt="You Won!"
+                        className="mb-4 w-80 rounded-xl"
+                    />
+                </>
+            )}
+
             <h2
-                className='mb-4 sm:text-2xl text-xl font-semibold text-slate-900'>
-                Score: {predictions.filter(p => p.correct).length} / {predictions.length}
+                className='sm:text-2xl text-xl font-semibold text-slate-900'>
+                Score: {correct} / {predictions.length}
             </h2>
 
+            <h3 className='mb-4 sm:text-2xl text-xl font-semibold text-slate-900'>
+                Time: {formatTime((gameCurrentTime - gameStartTime) / 1000)}
+            </h3>
+
             <div
-                className='max-w-full overflow-x-auto flex gap-4 px-8 p-4 rounded-lg shadow-[0_5px_25px_-5px_rgb(0,0,0,0.1),_0_8px_10px_-6px_rgb(0,0,0,0.1);]'
+                className='grid grid-cols-4 gap-4 px-8 p-4 rounded-lg shadow-[0_5px_25px_-5px_rgb(0,0,0,0.1),_0_8px_10px_-6px_rgb(0,0,0,0.1);] overflow-y-scroll h-[16rem] shrink-0'
             >
                 {predictions.map((p, i) => {
                     return (
@@ -78,9 +97,9 @@ const GameOver = ({ predictions, onClick }) => {
                         >
 
 
-                            <img className='max-h-[12rem] min-w-[12rem]' src={p.image ? createImageFromImageData(p.image) : ''}></img>
+                            <img className='max-h-[12rem] w-[12rem]' src={p.image ? createImageFromImageData(p.image) : ''}></img>
 
-                            <p className='text-slate-900 text-lg font-semibold mt-2'>{p.target} {p.correct ? '✅' : '❌'}</p>
+                            <p className='text-slate-900 text-xs sm:text-lg font-semibold mt-2'>{p.target} {p.correct ? '✅' : '❌'}</p>
                         </div>
                     )
                 })}
@@ -92,7 +111,7 @@ const GameOver = ({ predictions, onClick }) => {
                     type="button"
                     className={`
           inline-flex items-center px-4 py-2 font-semibold
-          leading-6 shadow rounded-md text-white bg-indigo-500 hover:bg-indigo-400
+          leading-6 shadow rounded-md text-white bg-lime-600 hover:bg-lime-500 hover:border-lime-700 focus:outline-lime-700
           transition ease-in-out duration-150
           `}>
                     Play Again
@@ -102,7 +121,7 @@ const GameOver = ({ predictions, onClick }) => {
                     type="button"
                     className={`
     inline-flex items-center px-4 py-2 font-semibold
-    leading-6 shadow rounded-md text-white bg-yellow-500 hover:bg-yellow-400
+    leading-6 shadow rounded-md text-lime-900 hover:border-lime-700 focus:outline-lime-700
     transition ease-in-out duration-150
   `}
                 >
