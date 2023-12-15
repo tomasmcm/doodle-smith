@@ -2,8 +2,12 @@ import constants from "./constants";
 
 import { pipeline, env, RawImage } from "@xenova/transformers";
 
+// Specify a custom location for models (defaults to '/models/').
+env.localModelPath = '/models/';
+// Disable the loading of remote models from the Hugging Face Hub:
+env.allowRemoteModels = false;
 // Disable local models
-env.allowLocalModels = false;
+env.allowLocalModels = true;
 
 // Define model factories
 // Ensures only one model is created of each type
