@@ -25,6 +25,13 @@ export function throttle(func, delay) {
     };
 }
 
+export function formatTime(seconds) {
+    seconds = Math.floor(seconds);
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+}
+
 export function mobileTabletCheck() {
     // https://stackoverflow.com/questions/11381673/detecting-a-mobile-browser
     let check = false;
